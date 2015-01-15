@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <link rel="shortcut icon" type="image/png" href="../static/img/cat%20in%20a%20cup2.ico"/>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+
+    <title>{% block title %}{% endblock %}</title>
+    {% block head %}{% endblock %}
+
+</head>
+<body >
+
+<div id="header-text">
+    <img id="logo-icon" src="../static/img/cat%20in%20a%20cup2.png">
+    <div id="logo-text">Fikapaus</div>
+
+    <h2>Because your instruments need a break!</h2>
+</div>
+
+<div id="wrapper">
+
+    <header>
+
+    </header>
+
+    <div class="content">
+
+
+       <nav id="nav-bar">
+					<a href="{{ url_for('home') }}" data-hover="Home">Home</a>
+					<a href="{{ url_for('metronome') }}" data-hover="Metronome">Metronome</a>
+					<a href="{{ url_for('chromatic_tuner') }}" data-hover="Chromatic Tuner">Chromatic Tuner</a>
+					<a href="{{ url_for('feedback') }}" data-hover="Feedback">Feedback</a>
+				</nav>
+
+
+        {% block body %}{% endblock %}
+    </div>
+
+    <footer>
+
+
+                <a href="{{url_for('contact')}}">Contact us.</a>
+                <br>
+                <span class="footer-text">Beta version 0.1</span>
+
+
+
+
+    </footer>
+    <!--<script src="../static/js/navigation_bar.js"></script>-->
+
+</div>
+</body>
+</html>

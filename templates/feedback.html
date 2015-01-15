@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback | Fikapaus{% endblock %}
+
+{% block body %}
+
+
+
+<form id="feedback-form" action="{{url_for('feedback')}}" method="post">
+    <input name="email" class="small input-ascii" type="text" placeholder="Email"><label>{{ email }}</label>
+    <input name="subject" class="small input-ascii" type="text" placeholder="Subject"><label>{{ subject }}</label>
+    <input name="instrument" class="small input-ascii" type="text" placeholder="Instrument(optional)"><label>{{ instrument}}</label>
+    <textarea name="description" class='large input-ascii' placeholder="Description"></textarea><div id="description">{{ description }}</div>
+    <input name="submit" id="submit" value="Submit" type="submit">
+
+</form>
+
+{% if scroll_to_form == True %}
+        <script>
+            document.getElementById('feedback-form').scrollIntoView(true);
+            scrolled()
+        </script>
+{% endif %}
+{% endblock %}

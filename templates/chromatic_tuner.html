@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Chromatic Tuner | Fikapaus{% endblock %}
+
+{% block body %}
+
+
+
+    <form  id="visualType">
+        <ul id="radiolist">
+            <li>
+                <div class='radiobutton'>
+                    <input type="radio" name="radio" id="radio1" class="radio" value="frequency bars" checked/>
+                    <label class="radio-label" for="radio1">Frequency bars</label>
+                </div>
+
+            </li>
+
+            <li>
+                <div class='radiobutton'>
+                    <input type="radio" name="radio" id="radio2" class="radio" value="sine wave"/>
+                    <label class="radio-label" for="radio2">Sine wave</label>
+                </div>
+            </li>
+
+
+        </ul>
+    </form>
+    <div id="tuning-text">
+        <h3 id="pitch"></h3>
+        <h3 id="note"></h3>
+    </div>
+    <canvas id="visualizer" height="800" width="1920">
+
+    </canvas>
+    <script src="../static/js/tuner.js"></script>
+{% endblock %}

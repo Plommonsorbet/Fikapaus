@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Metronome | Fikapaus{% endblock %}
+
+{% block body %}
+<p>Please give us suggestions about how you think the metronome visualisation should be like on the feedback page! <3</p>
+
+<div class="metronome-controls">
+<label>Bpm <input id='bpm' type="number" value="100" class="input-ascii" ></label>
+
+
+<label>
+    Resolution
+    <select id="resolution">
+        <option value="1">16th</option>
+        <option value="2">8th</option>
+        <option value="3">4th</option>
+    </select>
+</label>
+<button id="start-stop" onclick="run.toggle()">Start</button>
+</div>
+<canvas id="visualizer" height="800" width="1920"></canvas>
+
+<script src="../static/js/metronome.js"></script>
+{% endblock %}
