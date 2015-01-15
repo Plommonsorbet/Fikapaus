@@ -47,6 +47,9 @@ button::-moz-focus-inner {
 
         background: url('../img/violins2.jpg') left ;
     }
+    .radio-label{
+        font-size: 2.5vmax;
+    }
 }
 
 @media only screen and (min-width: 350px) {
@@ -59,6 +62,9 @@ button::-moz-focus-inner {
    header {
 
         background: url('../img/violins2.jpg') left ;
+    }
+   .radio-label{
+        font-size: 2vmax;
     }
 }
 
@@ -73,6 +79,9 @@ button::-moz-focus-inner {
     header {
         background: url('../img/violins2.jpg') left ;
     }
+    .radio-label{
+        font-size: 2.5vmax;
+    }
 
 }
 
@@ -86,6 +95,9 @@ button::-moz-focus-inner {
     }
     header {
         background-image: url('../img/violins2.jpg') ;
+    }
+    .radio-label{
+        font-size: 2.5vmax;
     }
 }
 
@@ -301,19 +313,20 @@ footer a:hover {
 .radiobutton {
     float: left;
 	clear: both;
-	margin: 0 5vw;
+	margin-right: 2vw;
 }
 
 
 
 .radio-label {
-  font-size: 2.5vmax;
-  width: 20vmax;
+
+  width: 30vw;
   border-radius: 3px;
   border: 1px solid #D1D3D4
 }
 
 #radiolist {
+    padding-left: 1.5vw;
     padding-top: 5vh;
     list-style: none;
     text-align: center;
@@ -339,7 +352,7 @@ input.radio:empty ~ label {
 	position: relative;
 	float: left;
 	line-height: 6vh;
-	text-indent: 2.5vmax;
+	text-indent: 2.4vmax;
 	margin-top: 8vh;
 	cursor: pointer;
 	-webkit-user-select: none;
@@ -354,7 +367,7 @@ input.radio:empty ~ label:before {
 	bottom: 0;
 	left: 0;
 	content: '';
-	width: 3.5vmax;
+	width: 3vmax;
 	background: #D1D3D4;
 	border-radius: 3px 0 0 3px;
 }
