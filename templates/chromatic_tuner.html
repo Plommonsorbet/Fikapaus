@@ -5,8 +5,9 @@
 {% block body %}
 
 
-
+    <p>Note: allow us to access your microphone for the chromatic tuner to work.</p>
     <form  id="visualType">
+
         <ul id="radiolist">
             <li>
                 <div class='radiobutton'>
@@ -22,10 +23,24 @@
                     <label class="radio-label" for="radio2">Sine wave</label>
                 </div>
             </li>
-
-
+            <li>
+                <div class='radiobutton'>
+                    <input type="radio" name="radio" id="radio3" class="radio" onclick="run.clearSonogram()" value="sonogram"/>
+                    <label class="radio-label" for="radio3">Sonogram</label>
+                </div>
+            </li>
         </ul>
+
     </form>
+
+    <!--<label>-->
+    <!--Visual Settings-->
+        <!--<select id="visualType">-->
+            <!--<option value="frequency bars">Frequency Bars</option>-->
+            <!--<option value="sine wave">Sine Wave</option>-->
+            <!--<option value="sonogram">Sonogram</option>-->
+        <!--</select>-->
+    <!--</label>-->
     <div id="tuning-text">
         <h3 id="pitch"></h3>
         <h3 id="note"></h3>
@@ -33,5 +48,8 @@
     <canvas id="visualizer" height="800" width="1920">
 
     </canvas>
+
+
+    <script type="text/javascript" src="../static/js/chroma.js"></script>
     <script src="../static/js/tuner.js"></script>
 {% endblock %}

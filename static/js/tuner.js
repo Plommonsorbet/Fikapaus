@@ -4,6 +4,7 @@
 
 
 
+
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 
@@ -37,8 +38,7 @@ function ChromaticTuner() {
     this.analyser = audioCtx.createAnalyser();
     this.analyser.minDecibels = -80 ;
 
-    this.analyser.smoothingTimeConstant = 0.8;
-
+    this.analyser.smoothingTimeConstant = 0.85;
 
 
 
@@ -46,7 +46,10 @@ function ChromaticTuner() {
 
     this.canvasWidth = 1920;
     this.canvasHeight = 800;
+    this.sinewaveColorScale =  new chroma.scale(['white', 'black']).out('hex');
+    this.sonogramColorScale = new chroma.scale(['f5f5f5','#ABE18B','#88BD7A','#689A68','#4C7954','#335940','#1E3A2B']).out('hex');
     this.notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    this.column = 0;
 
 
     this.visualizer = document.querySelector('canvas');
@@ -54,7 +57,6 @@ function ChromaticTuner() {
     this.visualType = document.getElementById("visualType");
     this.pitch = document.getElementById('pitch');
     this.note = document.getElementById('note');
-
 }
 
 
@@ -128,21 +130,22 @@ ChromaticTuner.prototype.autoCorrelation  = function() {
 };
 
 
+ChromaticTuner.prototype.clearSonogram = function() {
+        this.column = 0;
+        this.visualizerCtx.fillRect(0,0, this.canvasWidth, this.canvasHeight)
+};
+
 ChromaticTuner.prototype.update = function() {
 
 
         this.analyser.getFloatTimeDomainData( this.dataArrayForAutoCorrelation );
         this.frequency = this.autoCorrelation();
-
-
-
-
-
         var x;
         this.visualizerCtx.fillStyle = 'rgb(245, 245, 245)';
-        this.visualizerCtx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+//        this.visualizerCtx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 
         if (this.visualType.elements["radio"].value == 'frequency bars'){
+            this.visualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
             x=0;
             this.analyser.getByteFrequencyData( this.dataArrayForCanvas );
 
@@ -163,14 +166,17 @@ ChromaticTuner.prototype.update = function() {
 
         }
         else if (this.visualType.elements["radio"].value == 'sine wave') {
+            this.visualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+
             console.log(this.visualType.elements["radio"].value);
 
-            this.visualizerCtx.strokeStyle = "black";
+
             this.visualizerCtx.beginPath();
+            this.visualizerCtx.lineWidth = 2;
             this.visualizerCtx.moveTo(0,this.dataArrayForAutoCorrelation[0]);
 
-            for (var j=0;j<this.canvasWidth;j++) {
-
+            for (var j=0; j<this.canvasWidth; j++) {
+                this.visualizerCtx.strokeStyle = 'black';
                 x = j * (this.canvasWidth / this.bufferLength);
                 this.visualizerCtx.lineTo(x,this.canvasHeight/2+(this.dataArrayForAutoCorrelation[j]*this.canvasHeight/2));
 
@@ -180,17 +186,45 @@ ChromaticTuner.prototype.update = function() {
 
 
         }
+        else if (this.visualType.elements["radio"].value == 'sonogram') {
+
+            if (this.column == 0){
+                this.visualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight)
+            }
+
+            this.analyser.getByteFrequencyData( this.dataArrayForCanvas );
+
+            var size = this.canvasHeight / this.bufferLength * 5;
+
+            for (j = 0; j < this.dataArrayForCanvas.length; j++) {
+
+                    this.visualizerCtx.fillStyle = this.sonogramColorScale(this.dataArrayForCanvas[j] / 256.0);
+                    this.visualizerCtx.fillRect(this.column * size, this.canvasHeight - j, size, size);
+
+                }
+
+            this.column += 1;
+            console.log(this.column);
+            if (this.column >= this.canvasWidth/size) {
+                this.column = 0;
+                this.visualizerCtx.fillStyle = '#f5f5f5';
+                this.visualizerCtx.fillRect(0,0, this.canvasWidth, this.canvasHeight)
+            }
+
+            }
 
         if (this.frequency != null ) {
 
             var note = 12 * (Math.log(this.frequency / 440) / Math.log(2) );
             note = Math.round(note) + 69;
 
-            this.pitch.innerHTML = String(this.frequency.toFixed(2)) + ' Hz';
+            this.pitch.innerHTML = String(this.frequency.toFixed(1)) + ' Hz';
+            this.pitch.innerHTML = String(Math.round(this.frequency)) + ' Hz';
             this.note.innerHTML = this.notes[note % 12];
 
 
             this.time = audioCtx.currentTime;
+
         }
 
         else if ((audioCtx.currentTime - this.time) >= 5 ) {
@@ -210,8 +244,8 @@ window.onload(navigator.getUserMedia(
         window.source = audioCtx.createMediaStreamSource(stream);
         run.start()
     },
-    function (error) {
-        console.log(alert("I'm sorry Dave. Your web browser can't do that."))
+    function () {
+        alert("I'm sorry Dave. Your web browser can't do that.")
     }
 ));
 

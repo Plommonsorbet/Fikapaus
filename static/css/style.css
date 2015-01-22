@@ -38,7 +38,7 @@ button::-moz-focus-inner {
 
 @media only screen and (min-width: 200px){
     #tuning-text {
-        top: 30vh;
+        top: 35vh;
     }
     #radiolist{
         padding-left:  7vw;
@@ -54,7 +54,7 @@ button::-moz-focus-inner {
 
 @media only screen and (min-width: 350px) {
     #tuning-text {
-        top: 30vh;
+        top: 35vh;
     }
    #radiolist {
        padding: 0
@@ -71,7 +71,7 @@ button::-moz-focus-inner {
 
 @media only screen and (min-width: 600px) {
     #tuning-text {
-        top: 30vh;
+        top: 35vh;
     }
     #radiolist{
         padding-left: 10vw;
@@ -88,7 +88,7 @@ button::-moz-focus-inner {
 
 @media only screen and (min-width: 992px){
     #tuning-text {
-        top: 35vh;
+        top: 40vh;
     }
     #radiolist{
         padding-left: 17.5vw;
@@ -325,9 +325,11 @@ footer a:hover {
   border: 1px solid #D1D3D4
 }
 
+
+
 #radiolist {
     padding-left: 1.5vw;
-    padding-top: 5vh;
+    padding-top: 2.5vh;
     list-style: none;
     text-align: center;
 }
@@ -335,6 +337,7 @@ footer a:hover {
 #radiolist, #radiolist li {
     float: left;
     margin: 0;
+    padding-top: 0;
 }
 #radiolist li {
     padding: 0;

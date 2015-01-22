@@ -5,36 +5,21 @@
 
 {% block head %}
     <link rel="stylesheet" href="{{url_for('static', filename='css/font-awesome.min.css')}}">
-
 {% endblock %}
 
 
 {% block body %}
 
+<div class="contact">
+    <img src="../static/img/anton~.JPG"><br>
+    <a href="https://github.com/itgsod-anton-skogsberg"><i class="fa fa-github"></i></a></div>
 
 
 <div class="contact">
-    <img src="http://placekitten.com/500/600"><br>
-    <!--<a onclick="form1.classList.toggle('hide')"><i class="fa fa-google"></i></a>-->
-    <a href=""><i class="fa fa-github"></i></a></div>
-<!--<form id="contact-form1" class="contact-form hide" action="{{url_for('contact')}}" method="post">-->
-    <!--<input name="email" class="input-ascii" type="text" placeholder="Email"><label>{{ email }}</label>-->
-    <!--<input name="subject" class="input-ascii" type="text" placeholder="Subject"><label>{{ subject }}</label>-->
-    <!--<textarea name="description" class='large input-ascii' placeholder="Description"></textarea><div class="description">{{ description }}</div>-->
-    <!--<input name="submit" value="Submit" type="submit">-->
-<!--</form>-->
+    <img src="../static/img/profile-pic-2.png"><br>
+    <a href="https://github.com/Plommonsorbet"><i class="fa fa-github"></i></a>
+</div>
 
-<div class="contact"><img src="../static/img/profile-pic-2.png"><br>
-    <!--<a onclick="form2.classList.toggle('hide')"><i class="fa fa-google"></i></a>-->
-    <a href="https://github.com/Plommonsorbet"><i class="fa fa-github"></i></a></div>
-<!--<form id="contact-form2" class="contact-form hide" action="{{url_for('contact')}}" method="post">-->
-    <!--<input name="email" class="input-ascii" type="text" placeholder="Email"><label>{{ email }}</label>-->
-    <!--<input name="subject" class="input-ascii" type="text" placeholder="Subject"><label>{{ subject }}</label>-->
-    <!--<textarea name="description" class='large input-ascii' placeholder="Description"></textarea><div class="description">{{ description }}</div>-->
-    <!--<input name="submit" value="Submit" type="submit">-->
-<!--</form>-->
-<script>
-    var form1 = document.getElementById('contact-form1');
-    var form2 = document.getElementById('contact-form2');
-</script>
+
+
 {% endblock %}
