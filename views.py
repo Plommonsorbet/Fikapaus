@@ -60,9 +60,9 @@ def feedback():
             msg['To'] = 'inquiries@fikapaus.io'
 
 
-            smtp = smtplib.SMTP('mail2.bahnhof.se')
-            smtp.sendmail(email, 'inquiries@fikapaus.io', msg.as_string())
-            smtp.quit()
+            # smtp = smtplib.SMTP('mail2.bahnhof.se')
+            # smtp.sendmail(email, 'inquiries@fikapaus.io', msg.as_string())
+            # smtp.quit()
 
         return render_template('feedback.html', subject=subject_message, description=description_message,
                                email=email_message,  scroll_to_form=scroll_to_form)
@@ -76,5 +76,5 @@ def contact():
 
     return render_template('contact.html')
 
-
-app.run(debug=True, host='0.0.0.0', port=1111)
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=1111)

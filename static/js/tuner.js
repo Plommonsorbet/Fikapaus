@@ -36,20 +36,22 @@ window.requestAnimFrame = (function(){
 function ChromaticTuner() {
 
     this.analyser = audioCtx.createAnalyser();
-    this.analyser.minDecibels = -80 ;
+    this.analyser.minDecibels = -60 ;
 
-    this.analyser.smoothingTimeConstant = 0.85;
+    this.analyser.smoothingTimeConstant = 0.70;
 
 
-
-    this.time = 0;
 
     this.canvasWidth = 1920;
     this.canvasHeight = 800;
+
     this.sinewaveColorScale =  new chroma.scale(['white', 'black']).out('hex');
     this.sonogramColorScale = new chroma.scale(['f5f5f5','#ABE18B','#88BD7A','#689A68','#4C7954','#335940','#1E3A2B']).out('hex');
     this.notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     this.column = 0;
+
+    this.frequencyUpdateTimer = audioCtx.currentTime;
+    this.temporaryArrayForautoCorrelation = new Array;
 
 
     this.visualizer = document.querySelector('canvas');
@@ -70,6 +72,7 @@ ChromaticTuner.prototype.start = function() {
     this.dataArrayForCanvas = new Uint8Array(this.bufferLength);
     this.dataArrayForAutoCorrelation = new Float32Array(this.bufferLength);
 
+
     this.visualizerCtx.clearRect(0, 0, this.canvasHeight, this.canvasWidth);
 
     this.update();
@@ -79,54 +82,59 @@ ChromaticTuner.prototype.start = function() {
 
 
 ChromaticTuner.prototype.autoCorrelation  = function() {
-    var samples = Math.floor(this.bufferLength / 2);
-    var rootMeanSquareOfSignal = 0;
-    var correlations = new Array(samples);
-    var foundGoodCorrelation = false;
+
+
     var bestCorrelation = 0;
-    var bestOffset = 0;
 
+    for (var i = 0; i < this.temporaryArrayForautoCorrelation.length; i++) {
+        var dataArray = this.temporaryArrayForautoCorrelation[i];
+        var samples = Math.floor(this.bufferLength / 2);
+        var rootMeanSquareOfSignal = 0;
+        var correlations = new Array(samples);
+        var foundGoodCorrelation = false;
 
-    for (var i = 0; i < this.bufferLength; i++) {
-        rootMeanSquareOfSignal += this.dataArrayForAutoCorrelation[i] * this.dataArrayForAutoCorrelation[i]
-    }
+        var bestOffset = 0;
 
-    rootMeanSquareOfSignal = Math.sqrt(rootMeanSquareOfSignal / this.bufferLength);
-    if (rootMeanSquareOfSignal < 0.01) {
-        return null;
-    }
-
-    var lastCorrelation = 1;
-    for (var offset = 0; offset < samples; offset++) {
-        var correlation = 0;
-
-        for (var j = 0; j < samples; j++) {
-            correlation += Math.abs((this.dataArrayForAutoCorrelation[j]) - (this.dataArrayForAutoCorrelation[j + offset]));
+        for (var j = 0; j < this.bufferLength; j++) {
+            rootMeanSquareOfSignal += dataArray[j] * dataArray[j]
         }
-        correlation = 1 - (correlation / samples);
-        correlations[offset] = correlation;
-        if ((correlation > 0.9) && (correlation > lastCorrelation)) {
-            foundGoodCorrelation = true;
 
-            if (correlation > bestCorrelation) {
+        rootMeanSquareOfSignal = Math.sqrt(rootMeanSquareOfSignal / this.bufferLength);
+        if (rootMeanSquareOfSignal < 0.01) {
+            return null;
+        }
 
-                bestCorrelation = correlation;
-                bestOffset = offset;
+        var lastCorrelation = 1;
+        for (var offset = 0; offset < samples; offset++) {
+            var correlation = 0;
+
+            for (var k = 0; k < samples; k++) {
+                correlation += Math.abs((dataArray[k]) - (dataArray[k + offset]));
             }
-        } else if (foundGoodCorrelation) {
-            var shift = (correlations[bestOffset + 1] - correlations[bestOffset - 1]) / correlations[bestOffset];
+            correlation = 1 - (correlation / samples);
+            correlations[offset] = correlation;
+            if ((correlation > 0.9) && (correlation > lastCorrelation)) {
+                foundGoodCorrelation = true;
 
-            return audioCtx.sampleRate / (bestOffset + (8 * shift));
+                if (correlation > bestCorrelation) {
+
+                    bestCorrelation = correlation;
+                    bestOffset = offset;
+                }
+            } else if (foundGoodCorrelation) {
+                var shift = (correlations[bestOffset + 1] - correlations[bestOffset - 1]) / correlations[bestOffset];
+
+                return audioCtx.sampleRate / (bestOffset + (8 * shift));
+            }
+
+            lastCorrelation = correlation;
+
         }
-
-        lastCorrelation = correlation;
-
+        if (bestCorrelation > 0.01) {
+            return audioCtx.sampleRate / bestOffset;
+        }
+        return null
     }
-    if (bestCorrelation > 0.01) {
-        return audioCtx.sampleRate/bestOffset;
-    }
-    return null
-
 };
 
 
@@ -139,7 +147,9 @@ ChromaticTuner.prototype.update = function() {
 
 
         this.analyser.getFloatTimeDomainData( this.dataArrayForAutoCorrelation );
-        this.frequency = this.autoCorrelation();
+
+
+
         var x;
         this.visualizerCtx.fillStyle = 'rgb(245, 245, 245)';
 //        this.visualizerCtx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
@@ -213,13 +223,28 @@ ChromaticTuner.prototype.update = function() {
 
             }
 
+        if ((audioCtx.currentTime - this.frequencyUpdateTimer) >= 0.5) {
+            this.frequency = this.autoCorrelation();
+            this.frequencyUpdateTimer = audioCtx.currentTime;
+
+
+        }
+        else {
+            this.temporaryArrayForautoCorrelation.push( this.dataArrayForAutoCorrelation )
+        }
+
+
         if (this.frequency != null ) {
+
+
 
             var note = 12 * (Math.log(this.frequency / 440) / Math.log(2) );
             note = Math.round(note) + 69;
 
+
+
             this.pitch.innerHTML = String(this.frequency.toFixed(1)) + ' Hz';
-            this.pitch.innerHTML = String(Math.round(this.frequency)) + ' Hz';
+//            this.pitch.innerHTML = String(Math.round(this.frequency)) + ' Hz';
             this.note.innerHTML = this.notes[note % 12];
 
 
@@ -234,20 +259,27 @@ ChromaticTuner.prototype.update = function() {
 
         requestAnimFrame(this.update.bind(this))
 };
-var run = new ChromaticTuner();
 
 
 
-window.onload(navigator.getUserMedia(
-    {audio: true},
-    function (stream) {
-        window.source = audioCtx.createMediaStreamSource(stream);
-        run.start()
-    },
-    function () {
-        alert("I'm sorry Dave. Your web browser can't do that.")
-    }
-));
+
+window.onload = function() {
+
+    var run = new ChromaticTuner();
+
+    navigator.getUserMedia(
+
+        {audio: true},
+
+        function (stream) {
+            window.source = audioCtx.createMediaStreamSource(stream);
+            run.start()
+        },
+        function () {
+            alert("I'm sorry Dave. Your web browser can't do that.")
+        }
+
+    )};
 
 
 
