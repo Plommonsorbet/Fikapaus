@@ -6,7 +6,6 @@ window.requestAnimFrame = (function(){
     return  window.requestAnimationFrame       ||
       window.webkitRequestAnimationFrame ||
       window.mozRequestAnimationFrame    ||
-      window.oRequestAnimationFrame      ||
       function( callback ){
       window.setTimeout(callback, 1000 / 60);
     };
@@ -18,37 +17,45 @@ function Metronome() {
     this.metronomePlaying = false;
     this.interval = null;
 
+    this.lastTime = window.audioContext.currentTime;
+
+    this.pendulumLength = 500;
 
     this.noteLength = 0.05;
     this.nextNoteTime = 0;
     this.beatNumber = 0;
     this.drawQueue = [];
     this.current16thOfANote = 0;
-    this.column = 0;
+    this.x = 0;
+    this.y= 0;
 
+    this.clockwise = true;
 
     this.analyser = window.audioContext.createAnalyser();
     this.analyser.fftSize = 2048;
-    this.bufferLength = this.analyser.frequencyBinCount;
-    this.dataArrayForCanvas = new Uint8Array(this.bufferLength);
 
     this.startStop = document.getElementById('start-stop');
     this.bpm = document.getElementById('bpm');
     this.resolution = document.getElementById('resolution');
     this.sonogramColorScale = new chroma.scale(['f5f5f5','#ABE18B','#88BD7A','#689A68','#4C7954','#335940','#1E3A2B']).out('hex');
 
-    this.canvas = document.getElementById('visualizer');
-    this.canvasCtx = this.canvas.getContext('2d');
-    this.HEIGHT = 800.0;
-    this.WIDTH = 1920.0;
+    this.pendulumCanvas = document.getElementById('pendulum');
+    this.pendulumCanvasCtx = this.pendulumCanvas.getContext('2d');
+    this.canvasHeight = 500;
+    this.canvasWidth = 400;
+    this.n = 0;
 }
-
-
 
 Metronome.prototype.nextNote = function() {
     var tempo = this.bpm.value;
+    if (tempo <20) {
+        tempo = 20;
+    } else if (tempo > 240) {
+        tempo = 240
+    }
 
     this.beatsPerSecond = 60.0/ tempo;
+
     this.nextNoteTime += 0.25 * this.beatsPerSecond;
 
 
@@ -63,26 +70,21 @@ Metronome.prototype.nextNote = function() {
 Metronome.prototype.playNote =function () {
 
 
-
-
     if ( (this.resolution.options[this.resolution.selectedIndex].value==2) && (this.beatNumber%2))
     return;
     if ( (this.resolution.options[this.resolution.selectedIndex].value==3) && (this.beatNumber%4))
+    return;
+    if ( (this.resolution.options[this.resolution.selectedIndex].value==4) && (this.beatNumber%8))
+    return;
+    if ( (this.resolution.options[this.resolution.selectedIndex].value==5) && (this.beatNumber%16))
     return;
 
     this.drawQueue.push( { note: this.beatNumber, time: this.nextNoteTime } );
 
 
-
-
-
-
-
     var oscillator = window.audioContext.createOscillator();
     oscillator.connect(this.analyser);
     this.analyser.connect(window.audioContext.destination);
-
-
 
 
     if (this.beatNumber % 16 == 0) {
@@ -112,7 +114,6 @@ Metronome.prototype.schedule = function() {
         this.playNote();
         this.nextNote();
 
-
     }
 
 };
@@ -140,79 +141,72 @@ Metronome.prototype.toggle = function () {
 };
 
 
+Metronome.prototype.draw = function () {
+
+   var angle = 1.5 * Math.PI;
+
+   this.x = this.canvasWidth/2 + this.pendulumLength * Math.cos(angle + (this.n * 0.02));
+   this.y = 50 - this.canvasHeight + this.pendulumLength * Math.sin(angle + (this.n * 0.02));
+
+
+    // Start drawing
+    this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+
+    // Draw bar for Pendulum
+    this.pendulumCanvasCtx.strokeStyle = 'black';
+    this.pendulumCanvasCtx.beginPath();
+    this.pendulumCanvasCtx.moveTo(this.canvasWidth/2, this.canvasHeight-50);
+    this.pendulumCanvasCtx.lineTo(this.x, this.y);
+    this.pendulumCanvasCtx.stroke();
+    this.pendulumCanvasCtx.closePath();
+
+
+    // Draw pendulum
+    this.pendulumCanvasCtx.fillStyle ='pink';
+    this.pendulumCanvasCtx.beginPath();
+    this.pendulumCanvasCtx.arc(this.canvasWidth/2,this.canvasHeight-50, 30, 0, Math.PI*2, false);
+    this.pendulumCanvasCtx.fill();
+    this.pendulumCanvasCtx.closePath();
+
+};
 
 
 Metronome.prototype.drawTimer = function() {
-    this.currentNote = this.current16thOfANote;
-    this.currentTime = window.audioContext.currentTime;
 
+    this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
-    if (this.column == 0){
-                this.canvasCtx.clearRect(0,0, this.WIDTH, this.HEIGHT)
-            }
+    var timeDifference = window.audioContext.currentTime - this.lastTime;
 
-    this.analyser.getByteFrequencyData( this.dataArrayForCanvas );
+    if ( timeDifference > 0.1  && this.n == 30 && this.clockwise == true) {
 
-    var size = this.HEIGHT / this.bufferLength * 5;
+        this.lastTime = window.audioContext.currentTime;
+        this.clockwise = false;
 
-    for (var j = 0; j < this.dataArrayForCanvas.length; j++) {
-
-            this.canvasCtx.fillStyle = this.sonogramColorScale(this.dataArrayForCanvas[j] / 256.0);
-            var color = this.dataArrayForCanvas[j] / 256.0;
-//            this.canvasCtx.fillStyle = 'hsl(' + color + ',60%,60%)';
-            this.canvasCtx.fillRect(this.column * size, this.HEIGHT - j, size, size);
-
-        }
-
-    this.column += 1;
-
-    if (this.column >= this.WIDTH/size) {
-        this.column = 0;
-        this.canvasCtx.fillStyle = '#f5f5f5';
-        this.canvasCtx.fillRect(0,0, this.WIDTH, this.HEIGHT)
     }
-//    while (this.drawQueue.length && this.drawQueue[0].time < this.currentTime) {
-//        this.currentNote = this.drawQueue[0].note;
-//        this.drawQueue.splice(0,1);
-//        }
-//
-//    if (this.current16thOfANote != this.currentNote) {
-//
-//        var noteHeight;
-//
-//
-//        if (this.beatNumber % 16 == 0) {
-//        noteHeight = this.HEIGHT * 0.7;
-//        this.canvasCtx.strokeStyle = 'red';
-//
-//        }
-//        else if (this.beatNumber % 4 == 0){
-//            noteHeight = this.HEIGHT * 0.8;
-//            this.canvasCtx.strokeStyle = 'green';
-//        }
-//        else {
-//            noteHeight = this.HEIGHT * 0.9;
-//            this.canvasCtx.strokeStyle = 'blue';
-//        }
-//
-//
-//        var canvas16thNotePosition = this.WIDTH/16;
-//        var currentNotePosition = canvas16thNotePosition * this.beatNumber * 0.9;
-//        this.canvasCtx.clearRect(0,0,this.WIDTH, this.HEIGHT);
-//        this.canvasCtx.lineWidth = 5;
-//
-//        this.canvasCtx.beginPath();
-//
-//
-//        this.canvasCtx.moveTo(currentNotePosition,this.HEIGHT);
-//        this.canvasCtx.lineTo(currentNotePosition, noteHeight);
-//        this.canvasCtx.stroke();
-//
-//
-//
-//        this.current16thOfANote = this.currentNote;
-//    }
-    window.requestAnimFrame(this.drawTimer.bind(this));
+    else if (timeDifference > 0.1  && this.clockwise == true) {
+
+        this.lastTime = window.audioContext.currentTime;
+        this.n +=1;
+
+
+    } else if (timeDifference > 0.1  && this.n == -30 && this.clockwise== false){
+
+        this.lastTime = window.audioContext.currentTime;
+        this.clockwise = true;
+
+
+    } else if (timeDifference > 0.1  && this.clockwise == false)  {
+
+        this.lastTime = window.audioContext.currentTime;
+        this.n -= 1;
+
+
+    }
+
+    this.draw();
+
+
+    this.interval = setInterval(this.drawTimer.bind(this), 100)
 
 };
 

@@ -71,7 +71,7 @@ button::-moz-focus-inner {
 
 @media only screen and (min-width: 600px) {
     #tuning-text {
-        top: 35vh;
+        top: 40vh;
     }
     #radiolist{
         padding-left: 10vw;

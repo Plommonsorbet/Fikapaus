@@ -6,7 +6,7 @@
 <p>Please give us suggestions about how you think the metronome visualisation should be like on the feedback page! <3</p>
 
 <div class="metronome-controls">
-<label>Bpm <input id='bpm' type="number" value="100" class="input-ascii" ></label>
+<label>Bpm <input id='bpm' type="number" value="50" class="input-ascii" ></label>
 
 
 <label>
@@ -15,11 +15,13 @@
         <option value="1">16th</option>
         <option value="2">8th</option>
         <option value="3">4th</option>
+        <option value="4">2nd</option>
+        <option value="5">1st</option>
     </select>
 </label>
 <button id="start-stop" onclick="run.toggle()">Start</button>
 </div>
-<canvas id="visualizer" height="800" width="1920"></canvas>
+<canvas id="pendulum" height="500" width="400"></canvas>
 <script type="text/javascript" src="../static/js/chroma.js"></script>
 <script src="../static/js/metronome.js"></script>
 {% endblock %}
