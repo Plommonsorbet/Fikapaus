@@ -30,20 +30,20 @@ function ChromaticTuner() {
 
 //  Creating our Analyser
     this.analyser = audioCtx.createAnalyser();
-    this.analyser.minDecibels = -80 ;
+    this.analyser.minDecibels = -70 ;
     this.analyser.smoothingTimeConstant = 0.70;
 
 //  Canvas max dimensions without being distorted.
     this.canvasWidth = 1920;
     this.canvasHeight = 800;
 
-//  Color scheme for the pendulumCanvas.
+//  Color scheme for the visualizer.
     this.sonogramColorScale = new chroma.scale(['f5f5f5','#ABE18B','#88BD7A','#689A68','#4C7954','#335940','#1E3A2B']).out('hex');
 
 //  For the note display.
     this.notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-//  Our x-coordinates for the pendulumCanvas.
+//  Our x-coordinates for the visualizer.
     this.x = 0;
 
 //  Using the audio context we can get an accurate timing of when we want to process the delayed audio data.
@@ -52,9 +52,24 @@ function ChromaticTuner() {
 //  Array to store the delayed audio input until being processed.
     this.temporaryArrayForautoCorrelation = new Array;
 
-//  The pendulumCanvas and the canvasContext
-    this.pendulumCanvas = document.querySelector('pendulumCanvas');
-    this.pendulumCanvasCtx = this.pendulumCanvas.getContext('2d');
+    this.samples = Math.floor(1024 / 2);
+
+    this.sampleRate = audioCtx.sampleRate;
+    this.bestCorrelation = 0;
+
+    this.dataArray = [];
+
+    this.rootMeanSquareOfSignal = 0;
+
+    this.bestOffset = 0;
+    this.lastCorrelation = 0;
+    this.correlations=[];
+    this.correlation = 0;
+    this.foundGoodCorrelation = false;
+
+//  The visualizer and the canvasContext
+    this.visualizer = document.getElementById('visualizer');
+    this.VisualizerCtx = this.visualizer.getContext('2d');
 
 //  The current visual type e.g sonogram, frequency bars etc.
     this.visualType = document.getElementById("visualType");
@@ -82,8 +97,8 @@ ChromaticTuner.prototype.start = function() {
     this.dataArrayForCanvas = new Uint8Array(this.bufferLength);
     this.dataArrayForAutoCorrelation = new Float32Array(this.bufferLength);
 
-//  Clearing the pendulumCanvas before visuals start.
-    this.pendulumCanvasCtx.clearRect(0, 0, this.canvasHeight, this.canvasWidth);
+//  Clearing the visualizer before visuals start.
+    this.VisualizerCtx.clearRect(0, 0, this.canvasHeight, this.canvasWidth);
 
 //  initiating the visualization and tuner.
     this.update();
@@ -94,66 +109,93 @@ ChromaticTuner.prototype.start = function() {
 
 ChromaticTuner.prototype.autoCorrelation  = function() {
 
+    this.bestCorrelation = 0;
 
-    var bestCorrelation = 0;
 
     for (var i = 0; i < this.temporaryArrayForautoCorrelation.length; i++) {
-        var dataArray = this.temporaryArrayForautoCorrelation[i];
-        var rootMeanSquareOfSignal = 0;
-        var correlations = new Array(this.bufferLength);
-        var foundGoodCorrelation = false;
 
-        var bestOffset = 0;
+        this.dataArray = this.temporaryArrayForautoCorrelation[i];
+
+        if (i ==0) {
+            console.log(this.dataArray);
+        }
+
+        this.rootMeanSquareOfSignal = 0;
+        this.foundGoodCorrelation = false;
+        this.correlations = new Array(this.bufferLength);
+
+        this.bestOffset = 0;
+
 
         for (var j = 0; j < this.bufferLength; j++) {
-            rootMeanSquareOfSignal += dataArray[j] * dataArray[j]
+            this.rootMeanSquareOfSignal += this.dataArray[j] * this.dataArray[j];
         }
 
-        rootMeanSquareOfSignal = Math.sqrt(rootMeanSquareOfSignal / this.bufferLength);
-        if (rootMeanSquareOfSignal < 0.01) {
+        this.rootMeanSquareOfSignal = Math.sqrt(this.rootMeanSquareOfSignal / this.bufferLength);
+
+        if (this.rootMeanSquareOfSignal < 0.01) {
+
             return null;
+
         }
 
-        var lastCorrelation = 1;
-        for (var offset = 0; offset < samples; offset++) {
-            var correlation = 0;
+        this.lastCorrelation = 1;
 
-            for (var k = 0; k < this.bufferLength; k++) {
-                correlation += Math.abs((dataArray[k]) - (dataArray[k + offset]));
+        for (var offset = 0; offset < this.samples; offset++) {
+
+            this.correlation = 0;
+
+            for (var k = 0; k < this.samples; k++) {
+
+                this.correlation += Math.abs((this.dataArray[k]) - (this.dataArray[k + offset]));
+
             }
-            correlation = 1 - (correlation / this.bufferLength);
-            correlations[offset] = correlation;
-            if ((correlation > 0.9) && (correlation > lastCorrelation)) {
-                foundGoodCorrelation = true;
 
-                if (correlation > bestCorrelation) {
+            this.correlation = 1 - (this.correlation / this.samples);
 
-                    bestCorrelation = correlation;
-                    bestOffset = offset;
+            this.correlations[offset] = this.correlation;
+
+
+            if ((this.correlation > 0.9) && (this.correlation > this.lastCorrelation)) {
+
+                this.foundGoodCorrelation = true;
+
+                if (this.correlation > this.bestCorrelation) {
+
+                    this.bestCorrelation = this.correlation;
+                    this.bestOffset = offset;
+
                 }
-            } else if (foundGoodCorrelation) {
-                var shift = (correlations[bestOffset + 1] - correlations[bestOffset - 1]) / correlations[bestOffset];
-
-                return audioCtx.sampleRate / (bestOffset + (8 * shift));
             }
 
-            lastCorrelation = correlation;
+            else if (this.foundGoodCorrelation) {
+
+                var shift = (this.correlations[this.bestOffset + 1] - this.correlations[this.bestOffset - 1]) / this.correlations[this.bestOffset];
+
+                return this.sampleRate / (this.bestOffset + (8 * shift));
+
+            }
+
+            this.lastCorrelation = this.correlation;
 
         }
-        if (bestCorrelation > 0.01) {
-            return audioCtx.sampleRate / bestOffset;
+
+        if (this.bestCorrelation > 0.01) {
+
+            return this.sampleRate / this.bestOffset;
+
         }
         return null
     }
+
 };
 
 
 ChromaticTuner.prototype.clearCanvas = function() {
-//      Clear and reset the pendulumCanvas when switching to the sonogram visualization.
+//      Clear and reset the visualizer when switching to the sonogram visualization.
 
         this.x = 0;
-        this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
-        this.pendulumCanvasCtx.fillRect(0,0, this.canvasWidth, this.canvasHeight)
+        this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
 };
 
@@ -168,13 +210,13 @@ ChromaticTuner.prototype.update = function() {
 //      Choose on of: frequency bars, sine wave, sonogram based on the visualType element.
         if (this.visualType.elements["radio"].value == 'frequency bars'){
 
-//          Clear the previous "picture" on the pendulumCanvas.
-            this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+//          Clear the previous "picture" on the visualizer.
+            this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
 //          Copies the FFT data into dataArrayForCanvas
             this.analyser.getByteFrequencyData( this.dataArrayForCanvas );
 
-//          Sets the bar width according to the current pendulumCanvas size.
+//          Sets the bar width according to the current visualizer size.
             var barWidth = (this.canvasWidth / this.bufferLength * 2.5);
 
 //          For each in the length of half the FFT bins.
@@ -182,56 +224,59 @@ ChromaticTuner.prototype.update = function() {
 
 //              To get a float based on the frequency so we can later use it to determine color.
                 this.color = i / this.analyser.frequencyBinCount * 1000;
-//              the x is used to determine where in the pendulumCanvas is according to the bar width and index of the FFT data.
+//              the x is used to determine where in the visualizer is according to the bar width and index of the FFT data.
                 this.x = i + (i * barWidth);
 //              The height of the bar is the value of the dataArrayForCanvas.
                 var barHeight = this.dataArrayForCanvas[i];
 
 //              Choose fill style based on the previous float.
-                this.pendulumCanvasCtx.fillStyle = 'hsl(' + this.color + ',60%,60%)';
+                this.VisualizerCtx.fillStyle = 'hsl(' + this.color + ',60%,60%)';
 //              Draw the Bar
-                this.pendulumCanvasCtx.fillRect(this.x, this.canvasHeight - barHeight, barWidth, barHeight);
+                this.VisualizerCtx.fillRect(this.x, this.canvasHeight - barHeight, barWidth, barHeight);
 
             }
 
         }
         else if (this.visualType.elements["radio"].value == 'sine wave') {
 
-//          Clear the previous "picture" on the pendulumCanvas.
-            this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+//          Clear the previous "picture" on the visualizer.
+            this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
 //          Declare we want to start planning our stroke.
-            this.pendulumCanvasCtx.beginPath();
+            this.VisualizerCtx.beginPath();
 //          Set the thickness of our stroke.
-            this.pendulumCanvasCtx.lineWidth = 2;
+            this.VisualizerCtx.lineWidth = 2;
 //          Move to the value of the first value in the dataArrayForAutoCorrelation.
-            this.pendulumCanvasCtx.moveTo(0,this.dataArrayForAutoCorrelation[0]);
+            this.VisualizerCtx.moveTo(0,this.dataArrayForAutoCorrelation[0]);
 
-//          for each in the pendulumCanvas width
+//          for each in the visualizer width
             for (var j=0; j<this.canvasWidth; j++) {
 
 //              Set the stroke color to black.
-                this.pendulumCanvasCtx.strokeStyle = 'black';
+                this.VisualizerCtx.strokeStyle = 'black';
 
-//              Draw a point of the line at a point on the pendulumCanvas proportionate to the pendulumCanvas size/( FFT bins / 2 ) * the current
+//              Draw a point of the line at a point on the visualizer proportionate to the visualizer size/( FFT bins / 2 ) * the current
 //              index in the timedomain data.
                 this.x = j * (this.canvasWidth / this.bufferLength);
 
-//              Plan a point on the pendulumCanvas.
-                this.pendulumCanvasCtx.lineTo(x,this.canvasHeight/2+(this.dataArrayForAutoCorrelation[j]*this.canvasHeight/2));
+//              Plan a point on the visualizer.
+                this.VisualizerCtx.lineTo(this.x,this.canvasHeight/2+(this.dataArrayForAutoCorrelation[j]*this.canvasHeight/2));
 
             }
-//          Draw the planned pendulumCanvas.
-            this.pendulumCanvasCtx.stroke();
+//          Draw the planned visualizer.
+            this.VisualizerCtx.stroke();
+
+
 
 
         }
+
         else if (this.visualType.elements["radio"].value == 'sonogram') {
 
 //          Copies the FFT data into dataArrayForCanvas
             this.analyser.getByteFrequencyData( this.dataArrayForCanvas );
 
-//          The size of a point in the sonogram is equal to the pendulumCanvas height / ( FFT bins / 2 )
+//          The size of a point in the sonogram is equal to the visualizer height / ( FFT bins / 2 )
             var size = this.canvasHeight / this.bufferLength * 5;
 
 //          For each in the length of half the FFT bins.
@@ -240,29 +285,29 @@ ChromaticTuner.prototype.update = function() {
 //                  Float for determining the intensity of the color.
                     this.color = this.dataArrayForCanvas[j] / 256.0;
 //                  Set the fill style the intensity of the colorscale according to the float.
-                    this.pendulumCanvasCtx.fillStyle = this.sonogramColorScale(this.color);
+                    this.VisualizerCtx.fillStyle = this.sonogramColorScale(this.color);
 //                  Draw a point in the sonogram.
-                    this.pendulumCanvasCtx.fillRect(this.x * size, this.canvasHeight - j, size, size);
+                    this.VisualizerCtx.fillRect(this.x * size, this.canvasHeight - j, size, size);
 
                 }
 //          Add 1 to x each time so that it wont paint at the same x-coordinates.
             this.x ++;
 
-//          Once it reaches the end of the pendulumCanvas set x=0 and clear the pendulumCanvas, so that it can continue to display the data.
+//          Once it reaches the end of the visualizer set x=0 and clear the visualizer, so that it can continue to display the data.
             if (this.x >= this.canvasWidth/size) {
                 this.x = 0;
-                this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+                this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
             }
 
             }
 //      When the 0.5 seconds have passed since the current time was equal to when we last saved the time we send the
 //      time domain data to our biased auto correlation function.
+
         if ((audioCtx.currentTime - this.frequencyUpdateTimer) >= 0.5) {
 
-            this.frequency = this.autoCorrelation();
+           this.frequency = this.autoCorrelation();
             this.frequencyUpdateTimer = audioCtx.currentTime;
-
 
         }
 //      Otherwise add the current time domain data to a temporary array so that we can delay the analysis.
@@ -309,17 +354,17 @@ window.onload = function() {
 
         {audio: true},
 
-        function (stream) {
+       function (stream) {
 
-            // This new Electro-Voice communicator source has to be a global one, as to not disturb the ghost of the flaming fox.
+           // This new Electro-Voice communicator source has to be a global one, as to not disturb the ghost of the flaming fox.
 
-            window.source = audioCtx.createMediaStreamSource(stream);
-            window.run.start()
-        },
+           window.source = audioCtx.createMediaStreamSource(stream);
+           window.run.start()
+       },
 
-        function () {
-            alert("I'm sorry Dave. Your web browser can't do that.")
-        }
+       function () {
+           alert("I'm sorry Dave. Your web browser can't do that.")
+       }
 
     )};
 

@@ -39,8 +39,8 @@ function Metronome() {
     this.resolution = document.getElementById('resolution');
     this.sonogramColorScale = new chroma.scale(['f5f5f5','#ABE18B','#88BD7A','#689A68','#4C7954','#335940','#1E3A2B']).out('hex');
 
-    this.pendulumCanvas = document.getElementById('pendulum');
-    this.pendulumCanvasCtx = this.pendulumCanvas.getContext('2d');
+    this.visualizer = document.getElementById('pendulum');
+    this.VisualizerCtx = this.visualizer.getContext('2d');
     this.canvasHeight = 500;
     this.canvasWidth = 400;
     this.n = 0;
@@ -146,34 +146,34 @@ Metronome.prototype.draw = function () {
    var angle = 1.5 * Math.PI;
 
    this.x = this.canvasWidth/2 + this.pendulumLength * Math.cos(angle + (this.n * 0.02));
-   this.y = 50 - this.canvasHeight + this.pendulumLength * Math.sin(angle + (this.n * 0.02));
+   this.y = this.pendulumLength * Math.sin(angle + (this.n * 0.02));
 
 
     // Start drawing
-    this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+    this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
     // Draw bar for Pendulum
-    this.pendulumCanvasCtx.strokeStyle = 'black';
-    this.pendulumCanvasCtx.beginPath();
-    this.pendulumCanvasCtx.moveTo(this.canvasWidth/2, this.canvasHeight-50);
-    this.pendulumCanvasCtx.lineTo(this.x, this.y);
-    this.pendulumCanvasCtx.stroke();
-    this.pendulumCanvasCtx.closePath();
+    this.VisualizerCtx.strokeStyle = 'black';
+    this.VisualizerCtx.beginPath();
+    this.VisualizerCtx.moveTo(this.canvasWidth/2, this.canvasHeight-50);
+    this.VisualizerCtx.lineTo(this.x, this.y);
+    this.VisualizerCtx.stroke();
+    this.VisualizerCtx.closePath();
 
 
     // Draw pendulum
-    this.pendulumCanvasCtx.fillStyle ='pink';
-    this.pendulumCanvasCtx.beginPath();
-    this.pendulumCanvasCtx.arc(this.canvasWidth/2,this.canvasHeight-50, 30, 0, Math.PI*2, false);
-    this.pendulumCanvasCtx.fill();
-    this.pendulumCanvasCtx.closePath();
+    this.VisualizerCtx.fillStyle ='pink';
+    this.VisualizerCtx.beginPath();
+    this.VisualizerCtx.arc(this.canvasWidth/2,this.canvasHeight-50, 30, 0, Math.PI*2, false);
+    this.VisualizerCtx.fill();
+    this.VisualizerCtx.closePath();
 
 };
 
 
 Metronome.prototype.drawTimer = function() {
 
-    this.pendulumCanvasCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
+    this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
     var timeDifference = window.audioContext.currentTime - this.lastTime;
 
@@ -199,7 +199,6 @@ Metronome.prototype.drawTimer = function() {
 
         this.lastTime = window.audioContext.currentTime;
         this.n -= 1;
-
 
     }
 
