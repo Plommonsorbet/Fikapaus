@@ -175,37 +175,6 @@ Metronome.prototype.drawTimer = function() {
 
     this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
-    var timeDifference = window.audioContext.currentTime - this.lastTime;
-
-    if ( timeDifference > 0.1  && this.n == 30 && this.clockwise == true) {
-
-        this.lastTime = window.audioContext.currentTime;
-        this.clockwise = false;
-
-    }
-    else if (timeDifference > 0.1  && this.clockwise == true) {
-
-        this.lastTime = window.audioContext.currentTime;
-        this.n +=1;
-
-
-    } else if (timeDifference > 0.1  && this.n == -30 && this.clockwise== false){
-
-        this.lastTime = window.audioContext.currentTime;
-        this.clockwise = true;
-
-
-    } else if (timeDifference > 0.1  && this.clockwise == false)  {
-
-        this.lastTime = window.audioContext.currentTime;
-        this.n -= 1;
-
-    }
-
-    this.draw();
-
-
-    this.interval = setInterval(this.drawTimer.bind(this), 100)
 
 };
 

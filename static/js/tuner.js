@@ -30,8 +30,8 @@ function ChromaticTuner() {
 
 //  Creating our Analyser
     this.analyser = audioCtx.createAnalyser();
-    this.analyser.minDecibels = -70 ;
-    this.analyser.smoothingTimeConstant = 0.70;
+    this.analyser.minDecibels = -60 ;
+//    this.analyser.smoothingTimeConstant = 0.;
 
 //  Canvas max dimensions without being distorted.
     this.canvasWidth = 1920;
@@ -50,22 +50,22 @@ function ChromaticTuner() {
     this.frequencyUpdateTimer = audioCtx.currentTime;
 
 //  Array to store the delayed audio input until being processed.
-    this.temporaryArrayForautoCorrelation = new Array;
+
 
     this.samples = Math.floor(1024 / 2);
 
     this.sampleRate = audioCtx.sampleRate;
-    this.bestCorrelation = 0;
+//    this.bestCorrelation = 0;
 
-    this.dataArray = [];
 
-    this.rootMeanSquareOfSignal = 0;
 
-    this.bestOffset = 0;
-    this.lastCorrelation = 0;
-    this.correlations=[];
-    this.correlation = 0;
-    this.foundGoodCorrelation = false;
+//    this.rootMeanSquareOfSignal = 0;
+//
+//    this.bestOffset = 0;
+//    this.lastCorrelation = 0;
+//    this.correlations=[];
+//    this.correlation = 0;
+//    this.foundGoodCorrelation = false;
 
 //  The visualizer and the canvasContext
     this.visualizer = document.getElementById('visualizer');
@@ -96,6 +96,7 @@ ChromaticTuner.prototype.start = function() {
 //  Creating arrays half the size of the amount of FFT bins
     this.dataArrayForCanvas = new Uint8Array(this.bufferLength);
     this.dataArrayForAutoCorrelation = new Float32Array(this.bufferLength);
+    this.temporaryArrayForAutoCorrelation = new Float32Array(this.bufferLength);
 
 //  Clearing the visualizer before visuals start.
     this.VisualizerCtx.clearRect(0, 0, this.canvasHeight, this.canvasWidth);
@@ -109,84 +110,78 @@ ChromaticTuner.prototype.start = function() {
 
 ChromaticTuner.prototype.autoCorrelation  = function() {
 
+    this.samples = this.dataArrayForAutoCorrelation.length/2;
+
     this.bestCorrelation = 0;
 
+    this.rootMeanSquareOfSignal = 0;
 
-    for (var i = 0; i < this.temporaryArrayForautoCorrelation.length; i++) {
+    this.foundGoodCorrelation = false;
 
-        this.dataArray = this.temporaryArrayForautoCorrelation[i];
+    this.correlations = new Array(this.samples);
 
-        if (i ==0) {
-            console.log(this.dataArray);
-        }
+    this.bestOffset = 0;
 
-        this.rootMeanSquareOfSignal = 0;
-        this.foundGoodCorrelation = false;
-        this.correlations = new Array(this.bufferLength);
-
-        this.bestOffset = 0;
-
-
-        for (var j = 0; j < this.bufferLength; j++) {
-            this.rootMeanSquareOfSignal += this.dataArray[j] * this.dataArray[j];
-        }
-
-        this.rootMeanSquareOfSignal = Math.sqrt(this.rootMeanSquareOfSignal / this.bufferLength);
-
-        if (this.rootMeanSquareOfSignal < 0.01) {
-
-            return null;
-
-        }
-
-        this.lastCorrelation = 1;
-
-        for (var offset = 0; offset < this.samples; offset++) {
-
-            this.correlation = 0;
-
-            for (var k = 0; k < this.samples; k++) {
-
-                this.correlation += Math.abs((this.dataArray[k]) - (this.dataArray[k + offset]));
-
-            }
-
-            this.correlation = 1 - (this.correlation / this.samples);
-
-            this.correlations[offset] = this.correlation;
-
-
-            if ((this.correlation > 0.9) && (this.correlation > this.lastCorrelation)) {
-
-                this.foundGoodCorrelation = true;
-
-                if (this.correlation > this.bestCorrelation) {
-
-                    this.bestCorrelation = this.correlation;
-                    this.bestOffset = offset;
-
-                }
-            }
-
-            else if (this.foundGoodCorrelation) {
-
-                var shift = (this.correlations[this.bestOffset + 1] - this.correlations[this.bestOffset - 1]) / this.correlations[this.bestOffset];
-
-                return this.sampleRate / (this.bestOffset + (8 * shift));
-
-            }
-
-            this.lastCorrelation = this.correlation;
-
-        }
-
-        if (this.bestCorrelation > 0.01) {
-
-            return this.sampleRate / this.bestOffset;
-
-        }
-        return null
+    for (var j = 0; j < this.samples; j++) {
+        this.rootMeanSquareOfSignal += this.dataArrayForAutoCorrelation[j] * this.dataArrayForAutoCorrelation[j];
     }
+
+    this.rootMeanSquareOfSignal = Math.sqrt(this.rootMeanSquareOfSignal / this.samples);
+
+    if (this.rootMeanSquareOfSignal < 0.01) {
+
+        return null;
+
+    }
+
+    this.lastCorrelation = 1;
+
+    for (var offset = 0; offset < this.samples; offset++) {
+
+        this.correlation = 0;
+
+        for (var k = 0; k < this.samples; k++) {
+
+            this.correlation += Math.abs((this.dataArrayForAutoCorrelation[k]) - (this.dataArrayForAutoCorrelation[k + offset]));
+
+        }
+
+        this.correlation = 1 - (this.correlation / (this.samples));
+
+        this.correlations[offset] = this.correlation;
+
+
+        if ((this.correlation > 0.9) && (this.correlation > this.lastCorrelation)) {
+
+            this.foundGoodCorrelation = true;
+
+            if (this.correlation > this.bestCorrelation) {
+
+                this.bestCorrelation = this.correlation;
+                this.bestOffset = offset;
+
+            }
+        }
+
+//        else if (this.foundGoodCorrelation) {
+//
+//            var shift = (this.correlations[this.bestOffset + 1] - this.correlations[this.bestOffset - 1]) / this.correlations[this.bestOffset];
+//
+//            return this.sampleRate / (this.bestOffset + (8 * shift));
+//
+//        }
+
+        this.lastCorrelation = this.correlation;
+
+    }
+
+    if (this.bestCorrelation > 0.01) {
+
+        return this.sampleRate / this.bestOffset;
+
+    }
+    return null
+
 
 };
 
@@ -203,8 +198,8 @@ ChromaticTuner.prototype.update = function() {
 //      This is where the data from the Electro-Voice communicator is extracted, where the different visualisations happens
 //      and most importantly keeps track of when the data is to be shipped of for a biased auto correlation to determine pitch.
 
-//      This copies the waveform data from the Electro-Voice communicator into "dataArrayForAutoCorrelation".
-        this.analyser.getFloatTimeDomainData( this.dataArrayForAutoCorrelation );
+//      This copies the waveform data from the Electro-Voice communicator into "temporaryArrayForAutoCorrelation".
+        this.analyser.getFloatTimeDomainData( this.temporaryArrayForAutoCorrelation );
 
 
 //      Choose on of: frequency bars, sine wave, sonogram based on the visualType element.
@@ -246,8 +241,8 @@ ChromaticTuner.prototype.update = function() {
             this.VisualizerCtx.beginPath();
 //          Set the thickness of our stroke.
             this.VisualizerCtx.lineWidth = 2;
-//          Move to the value of the first value in the dataArrayForAutoCorrelation.
-            this.VisualizerCtx.moveTo(0,this.dataArrayForAutoCorrelation[0]);
+//          Move to the value of the first value in the temporaryArrayForAutoCorrelation.
+            this.VisualizerCtx.moveTo(0,this.temporaryArrayForAutoCorrelation[0]);
 
 //          for each in the visualizer width
             for (var j=0; j<this.canvasWidth; j++) {
@@ -260,7 +255,7 @@ ChromaticTuner.prototype.update = function() {
                 this.x = j * (this.canvasWidth / this.bufferLength);
 
 //              Plan a point on the visualizer.
-                this.VisualizerCtx.lineTo(this.x,this.canvasHeight/2+(this.dataArrayForAutoCorrelation[j]*this.canvasHeight/2));
+                this.VisualizerCtx.lineTo(this.x,this.canvasHeight/2+(this.temporaryArrayForAutoCorrelation[j]*this.canvasHeight/2));
 
             }
 //          Draw the planned visualizer.
@@ -304,16 +299,17 @@ ChromaticTuner.prototype.update = function() {
 //      When the 0.5 seconds have passed since the current time was equal to when we last saved the time we send the
 //      time domain data to our biased auto correlation function.
 
-        if ((audioCtx.currentTime - this.frequencyUpdateTimer) >= 0.5) {
+        if ((audioCtx.currentTime - this.frequencyUpdateTimer) >= 0.3) {
 
            this.frequency = this.autoCorrelation();
-            this.frequencyUpdateTimer = audioCtx.currentTime;
+           this.frequencyUpdateTimer = audioCtx.currentTime;
+           this.dataArrayForAutoCorrelation = [];
 
         }
 //      Otherwise add the current time domain data to a temporary array so that we can delay the analysis.
         else {
 
-            this.temporaryArrayForautoCorrelation.push( this.dataArrayForAutoCorrelation )
+            this.dataArrayForAutoCorrelation = new Float32Array( this.temporaryArrayForAutoCorrelation, this.dataArrayForAutoCorrelation )
 
         }
 
