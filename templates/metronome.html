@@ -14,14 +14,18 @@
     <select id="resolution">
         <option value="1">16th</option>
         <option value="2">8th</option>
-        <option value="3">4th</option>
+        <option value="3" selected>4th</option>
         <option value="4">2nd</option>
-        <option value="5">1st</option>
     </select>
 </label>
 <button id="start-stop" onclick="run.toggle()">Start</button>
 </div>
-<canvas id="pendulum" height="500" width="400"></canvas>
-<script type="text/javascript" src="../static/js/chroma.js"></script>
+{#<canvas id="pendulum" height="500" width="400"></canvas>#}
+
+<div id="bar"></div>
+<div id="bar-holder"></div>
+
+<script src="../static/js/move.js"></script>
+<script src="../static/js/chroma.js"></script>
 <script src="../static/js/metronome.js"></script>
 {% endblock %}

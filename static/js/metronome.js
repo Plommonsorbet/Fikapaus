@@ -1,92 +1,97 @@
 window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-
-
-window.requestAnimFrame = (function(){
-    return  window.requestAnimationFrame       ||
-      window.webkitRequestAnimationFrame ||
-      window.mozRequestAnimationFrame    ||
-      function( callback ){
-      window.setTimeout(callback, 1000 / 60);
-    };
-    })();
-
-
-
 function Metronome() {
+    //Variable for the start-stop button.
     this.metronomePlaying = false;
-    this.interval = null;
 
-    this.lastTime = window.audioContext.currentTime;
+    //Current swing.
+    this.barSwingCount = 0;
+    //Direction of current swing.
+    this.barDirections = [20, -20];
 
-    this.pendulumLength = 500;
-
+    //No swing on the first beep.
+    this.firstbeat = true;
+    //Length of beep.
     this.noteLength = 0.05;
+    //For scheduling next beep.
     this.nextNoteTime = 0;
+    //So we can keep track of every 16th note.
     this.beatNumber = 0;
-    this.drawQueue = [];
-    this.current16thOfANote = 0;
-    this.x = 0;
-    this.y= 0;
 
-    this.clockwise = true;
-
+    //Our analyser to connect the sound of the oscillator to the user.
     this.analyser = window.audioContext.createAnalyser();
     this.analyser.fftSize = 2048;
 
+    //Input Elements
     this.startStop = document.getElementById('start-stop');
     this.bpm = document.getElementById('bpm');
     this.resolution = document.getElementById('resolution');
-    this.sonogramColorScale = new chroma.scale(['f5f5f5','#ABE18B','#88BD7A','#689A68','#4C7954','#335940','#1E3A2B']).out('hex');
-
-    this.visualizer = document.getElementById('pendulum');
-    this.VisualizerCtx = this.visualizer.getContext('2d');
-    this.canvasHeight = 500;
-    this.canvasWidth = 400;
-    this.n = 0;
 }
 
 Metronome.prototype.nextNote = function() {
-    var tempo = this.bpm.value;
-    if (tempo <20) {
-        tempo = 20;
-    } else if (tempo > 240) {
-        tempo = 240
+
+
+    var beatsPerMinute = this.bpm.value;
+
+    //Not to high or low beats per minute as to break the script.
+    if (beatsPerMinute <20) {
+
+        beatsPerMinute = 20;
+
+    } else if (beatsPerMinute > 240) {
+
+        beatsPerMinute = 240
+
     }
+    //Convert to beats per second.
+    this.beatsPerSecond = 60 / beatsPerMinute ;
 
-    this.beatsPerSecond = 60.0/ tempo;
-
+    //Queue next note.
     this.nextNoteTime += 0.25 * this.beatsPerSecond;
 
+    //The interval between beeps.
+    this.nextResolutionLength = 0.2 + (this.beatsPerSecond * 0.25);
 
+    //reset to zero after 16th beat.
     if (this.beatNumber == 16) {
+
         this.beatNumber = 0;
+
     }
+    //Another beat happened.
     this.beatNumber ++;
 
 
 };
 
-Metronome.prototype.playNote =function () {
+Metronome.prototype.correct16thOfNote = function () {
 
-
+    //Returns 'incorrect' if the beat numbers are not played in the corresponding resolution.
     if ( (this.resolution.options[this.resolution.selectedIndex].value==2) && (this.beatNumber%2))
-    return;
+    return 'incorrect';
+
     if ( (this.resolution.options[this.resolution.selectedIndex].value==3) && (this.beatNumber%4))
-    return;
+    return 'incorrect';
+
     if ( (this.resolution.options[this.resolution.selectedIndex].value==4) && (this.beatNumber%8))
-    return;
-    if ( (this.resolution.options[this.resolution.selectedIndex].value==5) && (this.beatNumber%16))
-    return;
-
-    this.drawQueue.push( { note: this.beatNumber, time: this.nextNoteTime } );
+    return 'incorrect';
 
 
+};
+
+Metronome.prototype.playNote = function () {
+
+    //If incorrect beat number, do nothing.
+    if (this.correct16thOfNote() == 'incorrect') {
+        return;
+    }
+    //Creates our oscillator.
     var oscillator = window.audioContext.createOscillator();
-    oscillator.connect(this.analyser);
+
+    //Connecting sound to the user.
     this.analyser.connect(window.audioContext.destination);
 
-
+    //Different accent depending on beat number.
     if (this.beatNumber % 16 == 0) {
 
         oscillator.frequency.value = 1200.0;
@@ -101,81 +106,81 @@ Metronome.prototype.playNote =function () {
         oscillator.frequency.value = 600.0;
     }
 
-
+    //Start on schedule and stop after the note length.
     oscillator.start(this.nextNoteTime);
     oscillator.stop(this.nextNoteTime + this.noteLength);
 
 };
 
-Metronome.prototype.schedule = function() {
+Metronome.prototype.draw = function () {
 
+    //If incorrect beat number, do nothing.
+    if (this.correct16thOfNote() == 'incorrect') {
+        return;
+    }
+
+    //Css animation to rotate the bar in the current swing direction under the interval between notes.
+    move('#bar')
+        .rotate(this.barDirections[this.barSwingCount % 2])
+        .duration(String(this.nextResolutionLength) + 's')
+        .end();
+
+    // Increase the swing count;
+    this.barSwingCount ++;
+};
+
+Metronome.prototype.noteScheduler = function() {
+    //When the next note time is less than the current time + 10 ms, schedule another
     while ( this.nextNoteTime < window.audioContext.currentTime + 0.1){
 
+        //Play note.
         this.playNote();
+
+        //Plan next note.
         this.nextNote();
+
+        // If this is the first beat, do nothing. Otherwise draw.
+        if (this.firstbeat) {
+
+            this.firstbeat = false;
+
+        } else {
+
+            this.draw();
+
+        }
 
     }
 
 };
 
 Metronome.prototype.play = function() {
-    this.interval = window.setInterval(this.schedule.bind(this), 25);
-    window.requestAnimFrame(this.drawTimer.bind(this));
+
+    //Call the note scheduler every 25 ms.
+    this.interval = window.setInterval(this.noteScheduler.bind(this), 25);
+    //Change the text of the start-stop button to signal the user it is now a stop button.
     this.startStop.innerHTML = 'Stop';
-    console.log('interval made');
 
 };
 
 Metronome.prototype.stop =  function () {
-    this.startStop.innerHTML = 'Start';
+
+    //Clear the repeating interval.
     window.clearInterval(this.interval);
-    console.log('interval cleared')
+    //Return to original position.
+    move('#bar').rotate(0).ease('in').duration('0.25s').end();
+    //Change the text of the start-stop button to signal the user it is now a stop button.
+    this.startStop.innerHTML = 'Start';
 
 };
 
 Metronome.prototype.toggle = function () {
-    console.log(this.metronomePlaying);
+
+    console.log("Metronome is playing!?", this.metronomePlaying);
+    //Calling the stop or play function according to if metronome is playing or not.
     (this.metronomePlaying ? this.stop() : this.play());
+    //Invert the boolean, i.e if it is true, make it false and vice versa.
     this.metronomePlaying = !this.metronomePlaying;
-
-};
-
-
-Metronome.prototype.draw = function () {
-
-   var angle = 1.5 * Math.PI;
-
-   this.x = this.canvasWidth/2 + this.pendulumLength * Math.cos(angle + (this.n * 0.02));
-   this.y = this.pendulumLength * Math.sin(angle + (this.n * 0.02));
-
-
-    // Start drawing
-    this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
-
-    // Draw bar for Pendulum
-    this.VisualizerCtx.strokeStyle = 'black';
-    this.VisualizerCtx.beginPath();
-    this.VisualizerCtx.moveTo(this.canvasWidth/2, this.canvasHeight-50);
-    this.VisualizerCtx.lineTo(this.x, this.y);
-    this.VisualizerCtx.stroke();
-    this.VisualizerCtx.closePath();
-
-
-    // Draw pendulum
-    this.VisualizerCtx.fillStyle ='pink';
-    this.VisualizerCtx.beginPath();
-    this.VisualizerCtx.arc(this.canvasWidth/2,this.canvasHeight-50, 30, 0, Math.PI*2, false);
-    this.VisualizerCtx.fill();
-    this.VisualizerCtx.closePath();
-
-};
-
-
-Metronome.prototype.drawTimer = function() {
-
-    this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
-
-
 };
 
 var run = new Metronome();
