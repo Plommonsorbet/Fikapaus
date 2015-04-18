@@ -1,7 +1,7 @@
 window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 function Metronome() {
-    //Variable for the start-stop button.
+    // Variable for the start-stop button.
     this.metronomePlaying = false;
 
     //Current swing.
@@ -26,6 +26,7 @@ function Metronome() {
     this.startStop = document.getElementById('start-stop');
     this.bpm = document.getElementById('bpm');
     this.resolution = document.getElementById('resolution');
+
 }
 
 Metronome.prototype.nextNote = function() {
@@ -75,6 +76,8 @@ Metronome.prototype.correct16thOfNote = function () {
 
     if ( (this.resolution.options[this.resolution.selectedIndex].value==4) && (this.beatNumber%8))
     return 'incorrect';
+    if ( (this.resolution.options[this.resolution.selectedIndex].value==5) && (this.beatNumber%16))
+    return 'incorrect';
 
 
 };
@@ -89,6 +92,8 @@ Metronome.prototype.playNote = function () {
     var oscillator = window.audioContext.createOscillator();
 
     //Connecting sound to the user.
+    oscillator.connect(this.analyser);
+
     this.analyser.connect(window.audioContext.destination);
 
     //Different accent depending on beat number.

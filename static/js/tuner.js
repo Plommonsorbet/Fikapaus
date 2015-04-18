@@ -153,9 +153,9 @@ ChromaticTuner.prototype.autoCorrelation  = function() {
 
             }
         }
-
+        //
         else if (this.foundGoodCorrelation) {
-            //The previous time, we had a good correlation, now we have a bad one. From now on we wi
+            //Using Chris Wilson's hack for making a linear interpolation around the peak until i can figure out a better way to go about this.
             var shift = (this.correlations[this.bestOffset + 1] - this.correlations[this.bestOffset - 1]) / this.correlations[this.bestOffset];
 
             return this.sampleRate / (this.bestOffset + (8 * shift));
@@ -167,7 +167,7 @@ ChromaticTuner.prototype.autoCorrelation  = function() {
     }
 
     if (this.bestCorrelation > 0.01) {
-
+        //Calculating the frequency.
         return this.sampleRate / this.bestOffset;
 
     }
