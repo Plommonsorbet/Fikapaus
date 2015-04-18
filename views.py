@@ -69,7 +69,6 @@ def feedback():
 
     return render_template('feedback.html')
 
-
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
 
