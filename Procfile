@@ -1,0 +1,1 @@
+web: guni   corn views:app --log-file=-
