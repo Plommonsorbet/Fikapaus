@@ -3,7 +3,7 @@
  */
 
 
-// Gathering the necessary (ingredients something something ingredients) for the tuner in a manner that will appease to the majority.
+// Gathering the necessary requirements for the tuner in a manner that will appease to the majority.
 
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -21,9 +21,6 @@ window.requestAnimFrame = (function(){
                          function( callback ){
                          window.setTimeout(callback, 1000 / 60);};
                        })();
-
-
-
 
 
 function ChromaticTuner() {
@@ -51,21 +48,8 @@ function ChromaticTuner() {
 
 //  Array to store the delayed audio input until being processed.
 
-
-    this.samples = Math.floor(1024 / 2);
-
+//  The sample rate the audio context uses is 44100hz.
     this.sampleRate = audioCtx.sampleRate;
-//    this.bestCorrelation = 0;
-
-
-
-//    this.rootMeanSquareOfSignal = 0;
-//
-//    this.bestOffset = 0;
-//    this.lastCorrelation = 0;
-//    this.correlations=[];
-//    this.correlation = 0;
-//    this.foundGoodCorrelation = false;
 
 //  The visualizer and the canvasContext
     this.visualizer = document.getElementById('visualizer');
@@ -83,7 +67,7 @@ function ChromaticTuner() {
 ChromaticTuner.prototype.start = function() {
 
 //  This is where we connect the Electro-Voice communicator to our analyser(It does not determine the pitch but rather
-//  allows us to extract the data in [different formats] <-- behöver omformuleras),
+//  allows us to extract the signal in different domains,
 //  set the FFT size( where the amount of spectral lines are always FFT bins / 2).
 
     window.source.connect(this.analyser);
@@ -109,48 +93,55 @@ ChromaticTuner.prototype.start = function() {
 
 
 ChromaticTuner.prototype.autoCorrelation  = function() {
-
+//  Samples is only half the size of fft bins, seeing as we only need to compare to points in time once.
     this.samples = this.dataArrayForAutoCorrelation.length/2;
-
+//  Resetting the best correlation to 0;
     this.bestCorrelation = 0;
-
+//  Used for calculating if there is enough of a signal to process.
     this.rootMeanSquareOfSignal = 0;
 
     this.foundGoodCorrelation = false;
-
+//  Our correlated values
     this.correlations = new Array(this.samples);
-
+//  The offset for the best correlation value.
     this.bestOffset = 0;
 
+//  Taking the sum of the squared samples in our signal.
     for (var j = 0; j < this.samples; j++) {
-        this.rootMeanSquareOfSignal += this.dataArrayForAutoCorrelation[j] * this.dataArrayForAutoCorrelation[j];
-    }
 
+        this.rootMeanSquareOfSignal += this.dataArrayForAutoCorrelation[j] * this.dataArrayForAutoCorrelation[j];
+
+    }
+//  Squaring the mean of our squared samples.
     this.rootMeanSquareOfSignal = Math.sqrt(this.rootMeanSquareOfSignal / this.samples);
 
+//  If the signal is to small, do nothing.
     if (this.rootMeanSquareOfSignal < 0.01) {
 
         return null;
 
     }
 
+//  Creating a first value for last correlation.
     this.lastCorrelation = 1;
 
+//  Offset is a time delay so that we can compare different times in our window.
     for (var offset = 0; offset < this.samples; offset++) {
-
+        //  A new correlation for each offset.
         this.correlation = 0;
 
-        for (var k = 0; k < this.samples; k++) {
 
+        for (var k = 0; k < this.samples; k++) {
+        //  Taking the absolute number of the difference between the value with the current index and the value with the current index + our time delay.
             this.correlation += Math.abs((this.dataArrayForAutoCorrelation[k]) - (this.dataArrayForAutoCorrelation[k + offset]));
 
         }
 
         this.correlation = 1 - (this.correlation / (this.samples));
-
+        //   Saving the correlation for potential future reference.
         this.correlations[offset] = this.correlation;
 
-
+        //This will never go through for the first sample as the correlation can never be higher than 1.
         if ((this.correlation > 0.9) && (this.correlation > this.lastCorrelation)) {
 
             this.foundGoodCorrelation = true;
@@ -163,13 +154,13 @@ ChromaticTuner.prototype.autoCorrelation  = function() {
             }
         }
 
-//        else if (this.foundGoodCorrelation) {
-//
-//            var shift = (this.correlations[this.bestOffset + 1] - this.correlations[this.bestOffset - 1]) / this.correlations[this.bestOffset];
-//
-//            return this.sampleRate / (this.bestOffset + (8 * shift));
-//
-//        }
+        else if (this.foundGoodCorrelation) {
+            //The previous time, we had a good correlation, now we have a bad one. From now on we wi
+            var shift = (this.correlations[this.bestOffset + 1] - this.correlations[this.bestOffset - 1]) / this.correlations[this.bestOffset];
+
+            return this.sampleRate / (this.bestOffset + (8 * shift));
+
+        }
 
         this.lastCorrelation = this.correlation;
 
@@ -261,9 +252,6 @@ ChromaticTuner.prototype.update = function() {
 //          Draw the planned visualizer.
             this.VisualizerCtx.stroke();
 
-
-
-
         }
 
         else if (this.visualType.elements["radio"].value == 'sonogram') {
@@ -272,7 +260,7 @@ ChromaticTuner.prototype.update = function() {
             this.analyser.getByteFrequencyData( this.dataArrayForCanvas );
 
 //          The size of a point in the sonogram is equal to the visualizer height / ( FFT bins / 2 )
-            var size = this.canvasHeight / this.bufferLength * 5;
+            var size = this.canvasHeight / this.bufferLength;
 
 //          For each in the length of half the FFT bins.
             for (j = 0; j < this.dataArrayForCanvas.length; j++) {
@@ -289,7 +277,7 @@ ChromaticTuner.prototype.update = function() {
             this.x ++;
 
 //          Once it reaches the end of the visualizer set x=0 and clear the visualizer, so that it can continue to display the data.
-            if (this.x >= this.canvasWidth/size) {
+            if (this.x >= this.canvasWidth) {
                 this.x = 0;
                 this.VisualizerCtx.clearRect(0,0, this.canvasWidth, this.canvasHeight);
 
