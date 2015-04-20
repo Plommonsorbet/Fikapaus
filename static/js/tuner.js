@@ -170,6 +170,7 @@ ChromaticTuner.prototype.autoCorrelation  = function() {
         //Calculating the frequency.
         return this.sampleRate / this.bestOffset;
 
+        
     }
     return null
 
